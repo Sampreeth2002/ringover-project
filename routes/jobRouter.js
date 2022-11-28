@@ -59,7 +59,6 @@ router.post("/sms/addJob", async (req, res) => {
   });
 });
 
-//Redis aadidtion
 var mainQueue = [];
 
 const addingInQueue = () => {
@@ -74,7 +73,7 @@ const addingInQueue = () => {
 
       var queue = "MessageQueue";
 
-      channel.assertQueue("queue", {
+      channel.assertQueue(queue, {
         durable: false,
       });
 
@@ -107,6 +106,7 @@ router.get("/schedule", async (req, res) => {
   for (var i = 0; i < noOfJobs; i++) {
     var currentJob = allJobs[i];
     // Not depending on other job
+    console.log(currentJob);
     if (currentJob.dependent === null) {
       schedule.push(currentJob.task_id);
       // Removing the depending job from the queue
