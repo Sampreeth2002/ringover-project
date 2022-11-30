@@ -103,34 +103,42 @@ router.get("/schedule", async (req, res) => {
 
   var schedule = [];
   allJobs.sort(dynamicSort("priority"));
-  for (var i = 0; i < noOfJobs; i++) {
+  // console.log(allJobs.length);
+  var totalJobs = allJobs.length;
+  for (var i = 0; i < totalJobs; i++) {
     var currentJob = allJobs[i];
+    if (currentJob.task_id < 0) continue;
     // Not depending on other job
-    console.log(currentJob);
     if (currentJob.dependent === null) {
       schedule.push(currentJob.task_id);
       // Removing the depending job from the queue
-      allJobs = allJobs.filter(function (job) {
-        return currentJob.task_id != job.task_id;
-      });
+      currentJob.task_id = -1;
     } else {
       // If depending on other job
       var dependingJobId = currentJob.dependent;
       if (!schedule.includes(dependingJobId)) {
-        // Adding the depending job in the schedule
-        schedule.push(dependingJobId);
-        // Removing the depending job from the queue
-        allJobs = allJobs.filter(function (job) {
-          return dependingJobId != job.task_id;
-        });
+        var foundDependentTask = false;
+        for (var j = i; j < totalJobs; j++) {
+          if (dependingJobId === allJobs[j].task_id) {
+            // Removing the depending job from the queue
+            allJobs[j].task_id = -1;
+            foundDependentTask = true;
+            // Adding the depending job in the schedule
+            schedule.push(dependingJobId);
+          }
+        }
+        if (!foundDependentTask) {
+          res.send({
+            message: `Dependent job of job_id ${currentJob.task_id} not recived yet`,
+          });
+        }
+        schedule.push(currentJob.task_id);
       } else {
         // If the depending job already in the schedule
         schedule.push(currentJob.task_id);
       }
       // Removing current Job from the queue
-      allJobs = allJobs.filter(function (job) {
-        return currentJob.task_id != job.task_id;
-      });
+      currentJob.task_id = -1;
     }
   }
   //   console.log(allJobs);
@@ -144,9 +152,6 @@ function dynamicSort(property) {
     property = property.substr(1);
   }
   return function (a, b) {
-    /* next line works with strings and numbers,
-     * and you may want to customize it to your needs
-     */
     var result =
       a[property] < b[property] ? -1 : a[property] > b[property] ? 1 : 0;
     return result * sortOrder;
